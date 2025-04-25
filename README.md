@@ -1,6 +1,6 @@
 # Next Identity WordPress OIDC
 
-![Next Identity Logo](assets/images/Next_Identity_Logo_Black.svg)
+![Next Identity Logo](assets/images/Next_Identity_Logo_White.svg)
 
 Easily integrate Next Identity authentication into your WordPress site using OpenID Connect.
 
