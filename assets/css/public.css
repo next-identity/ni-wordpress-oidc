@@ -1,0 +1,72 @@
+/**
+ * Public styles for Next Identity OIDC
+ */
+
+/* Button container */
+.ni-oidc-button-container {
+    margin: 10px 0;
+}
+
+/* Button styles */
+.ni-oidc-button {
+    display: inline-flex;
+    align-items: center;
+    background-color: #1e88e5;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 15px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.ni-oidc-button:hover {
+    background-color: #1565c0;
+    color: white;
+    text-decoration: none;
+}
+
+.ni-oidc-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(30, 136, 229, 0.5);
+    color: white;
+    text-decoration: none;
+}
+
+/* Icon in button */
+.ni-oidc-icon {
+    height: 20px;
+    width: auto;
+    margin-right: 10px;
+}
+
+/* Button variants */
+.ni-oidc-login-button {
+    background-color: #1e88e5;
+}
+
+.ni-oidc-register-button {
+    background-color: #43a047;
+}
+
+.ni-oidc-register-button:hover {
+    background-color: #2e7d32;
+}
+
+.ni-oidc-edit-profile-button {
+    background-color: #7b1fa2;
+}
+
+.ni-oidc-edit-profile-button:hover {
+    background-color: #6a1b9a;
+}
+
+.ni-oidc-logout-button {
+    background-color: #e53935;
+}
+
+.ni-oidc-logout-button:hover {
+    background-color: #c62828;
+} 

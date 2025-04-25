@@ -1,0 +1,55 @@
+/**
+ * Admin styles for Next Identity OIDC
+ */
+
+/* Settings page layout */
+.ni-oidc-settings-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.ni-oidc-logo {
+    flex: 0 0 250px;
+    padding-right: 20px;
+}
+
+.ni-oidc-description {
+    flex: 1;
+}
+
+.ni-oidc-description p {
+    font-size: 14px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.ni-oidc-settings-footer {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 5px;
+}
+
+.ni-oidc-settings-footer h3 {
+    margin-top: 0;
+}
+
+/* Form fields */
+.form-table th {
+    width: 250px;
+}
+
+#ni_oidc_callback_url {
+    background: #f1f1f1;
+}
+
+/* Code blocks */
+code {
+    background: #f1f1f1;
+    padding: 3px 5px;
+    border-radius: 3px;
+} 
