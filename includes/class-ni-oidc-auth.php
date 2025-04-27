@@ -235,8 +235,8 @@ class NI_OIDC_Auth {
         // Generate a nonce for the state parameter
         $state = $this->generate_state();
         
-        // Store the state in a session for verification
-        WP_Session_Tokens::get_instance()->create($state);
+        // Store the state in a transient for verification (expires in 10 minutes)
+        set_transient('ni_oidc_state_' . $state, 'valid', 10 * MINUTE_IN_SECONDS);
         
         // Store the return URL in the session if provided
         if (isset($_GET['redirect_to'])) {
@@ -264,8 +264,8 @@ class NI_OIDC_Auth {
         // Generate a nonce for the state parameter
         $state = $this->generate_state();
         
-        // Store the state in a session for verification
-        WP_Session_Tokens::get_instance()->create($state);
+        // Store the state in a transient for verification (expires in 10 minutes)
+        set_transient('ni_oidc_state_' . $state, 'valid', 10 * MINUTE_IN_SECONDS);
         
         // Store the return URL in the session if provided
         if (isset($_GET['redirect_to'])) {
@@ -293,17 +293,17 @@ class NI_OIDC_Auth {
         // Generate a nonce for the state parameter
         $state = $this->generate_state();
         
-        // Store the state in a session for verification
-        WP_Session_Tokens::get_instance()->create($state);
+        // Store the state in a transient for verification (expires in 10 minutes)
+        set_transient('ni_oidc_state_' . $state, 'valid', 10 * MINUTE_IN_SECONDS);
         
         // Store the return URL in the session if provided
         if (isset($_GET['redirect_to'])) {
             update_option('ni_oidc_redirect_to_' . $state, esc_url_raw($_GET['redirect_to']), false);
         }
         
-        // Redirect to the authorization endpoint with the personal-details hint
-        $auth_url = $this->get_authorization_url($state, 'personal-details');
-        wp_redirect($auth_url);
+        // Redirect to the personal-details endpoint instead of the authorization endpoint
+        $personal_details_url = $this->get_personal_details_url($state);
+        wp_redirect($personal_details_url);
         exit;
     }
 
@@ -327,9 +327,13 @@ class NI_OIDC_Auth {
             $endpoints = $this->get_endpoints();
             
             if (isset($endpoints['end_session_endpoint'])) {
+                // Get the client ID
+                $client_id = get_option('ni_oidc_client_id', '');
+                
                 $logout_url = add_query_arg(array(
                     'id_token_hint' => $id_token,
                     'post_logout_redirect_uri' => $redirect_url,
+                    'client_id' => $client_id
                 ), $endpoints['end_session_endpoint']);
                 
                 wp_redirect($logout_url);
@@ -379,16 +383,11 @@ class NI_OIDC_Auth {
         $state = sanitize_text_field($_GET['state']);
         $is_valid_state = false;
         
-        // Check if the state is valid
-        $token_manager = WP_Session_Tokens::get_instance();
-        $sessions = $token_manager->get_all();
-        
-        foreach ($sessions as $token => $session) {
-            if ($token === $state) {
-                $is_valid_state = true;
-                $token_manager->destroy($token);
-                break;
-            }
+        // Check if the state is valid using transients
+        if (get_transient('ni_oidc_state_' . $state) === 'valid') {
+            $is_valid_state = true;
+            // Delete the transient to prevent replay attacks
+            delete_transient('ni_oidc_state_' . $state);
         }
         
         if (!$is_valid_state) {
@@ -414,8 +413,17 @@ class NI_OIDC_Auth {
             exit;
         }
         
-        // Get the user info
-        $userinfo = $this->get_userinfo($tokens['access_token']);
+        // Check if we should skip the userinfo endpoint call
+        $skip_userinfo = get_option('ni_oidc_skip_userinfo', false);
+        $userinfo = array();
+        
+        if ($skip_userinfo && isset($tokens['id_token'])) {
+            // Parse the ID token to get user information
+            $userinfo = $this->parse_id_token($tokens['id_token']);
+        } else {
+            // Get the user info from the userinfo endpoint
+            $userinfo = $this->get_userinfo($tokens['access_token']);
+        }
         
         if (!$userinfo || isset($userinfo['error'])) {
             // Log the error
@@ -862,5 +870,78 @@ class NI_OIDC_Auth {
         $client_secret = get_option('ni_oidc_client_secret', '');
         
         return !empty($provider_url) && !empty($client_id) && !empty($client_secret);
+    }
+
+    /**
+     * Parse and decode the ID token to extract user claims.
+     *
+     * @since    1.0.0
+     * @param    string    $id_token    The ID token.
+     * @return   array                  The decoded user claims.
+     */
+    private function parse_id_token($id_token) {
+        // Split the token into header, payload, and signature
+        $token_parts = explode('.', $id_token);
+        
+        if (count($token_parts) !== 3) {
+            return false;
+        }
+        
+        // Decode the payload (second part of the token)
+        $payload = $token_parts[1];
+        $payload = str_replace(array('-', '_'), array('+', '/'), $payload);
+        $payload = base64_decode($payload);
+        
+        if (!$payload) {
+            return false;
+        }
+        
+        // Parse the JSON payload
+        $claims = json_decode($payload, true);
+        
+        if (!$claims || !isset($claims['sub'])) {
+            return false;
+        }
+        
+        return $claims;
+    }
+
+    /**
+     * Get the personal details URL.
+     *
+     * @since    1.0.0
+     * @param    string    $state    The state parameter.
+     * @return   string              The personal details URL.
+     */
+    private function get_personal_details_url($state) {
+        // Get the provider URL
+        $provider_url = get_option('ni_oidc_provider_url', '');
+        
+        if (empty($provider_url)) {
+            return '';
+        }
+        
+        // Ensure provider URL has trailing slash
+        if (substr($provider_url, -1) !== '/') {
+            $provider_url .= '/';
+        }
+        
+        // Get the client ID and scopes
+        $client_id = get_option('ni_oidc_client_id', '');
+        $scopes = get_option('ni_oidc_scopes', 'openid profile email');
+        
+        // Build the parameters that would normally go to the authorization endpoint
+        $args = array(
+            'response_type' => 'code',
+            'client_id' => $client_id,
+            'redirect_uri' => site_url('?ni_oidc=callback'),
+            'scope' => $scopes,
+            'state' => $state,
+        );
+        
+        // Build the personal-details URL
+        $url = add_query_arg($args, $provider_url . 'personal-details');
+        
+        return $url;
     }
 } 

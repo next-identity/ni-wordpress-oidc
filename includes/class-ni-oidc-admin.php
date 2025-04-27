@@ -92,6 +92,13 @@ class NI_OIDC_Admin {
             'default' => 'openid profile email',
         ));
 
+        // Register a setting for skipping userinfo endpoint calls
+        register_setting('ni_oidc_options', 'ni_oidc_skip_userinfo', array(
+            'type' => 'boolean',
+            'sanitize_callback' => array($this, 'sanitize_checkbox'),
+            'default' => false,
+        ));
+
         // Register a setting for button text
         register_setting('ni_oidc_options', 'ni_oidc_login_button_text', array(
             'type' => 'string',
@@ -202,6 +209,14 @@ class NI_OIDC_Admin {
             'ni_oidc_scopes',
             __('Scopes', 'ni-oidc'),
             array($this, 'scopes_callback'),
+            'ni-oidc-settings',
+            'ni_oidc_provider_section'
+        );
+
+        add_settings_field(
+            'ni_oidc_skip_userinfo',
+            __('Skip UserInfo Endpoint', 'ni-oidc'),
+            array($this, 'skip_userinfo_callback'),
             'ni-oidc-settings',
             'ni_oidc_provider_section'
         );
@@ -360,6 +375,17 @@ class NI_OIDC_Admin {
         $scopes = get_option('ni_oidc_scopes', 'openid profile email');
         echo '<input type="text" id="ni_oidc_scopes" name="ni_oidc_scopes" value="' . esc_attr($scopes) . '" class="regular-text" />';
         echo '<p class="description">' . __('Space-separated list of scopes to request (e.g., openid profile email)', 'ni-oidc') . '</p>';
+    }
+
+    /**
+     * Render the skip userinfo field.
+     *
+     * @since    1.0.0
+     */
+    public function skip_userinfo_callback() {
+        $skip_userinfo = get_option('ni_oidc_skip_userinfo', false);
+        echo '<input type="checkbox" id="ni_oidc_skip_userinfo" name="ni_oidc_skip_userinfo" value="1" ' . checked(1, $skip_userinfo, false) . ' />';
+        echo '<p class="description">' . __('Use ID token claims instead of calling the UserInfo endpoint. This can improve performance but requires that all necessary user information is included in the ID token.', 'ni-oidc') . '</p>';
     }
 
     /**

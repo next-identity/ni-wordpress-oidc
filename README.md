@@ -48,6 +48,7 @@ Alternatively, you can install the plugin directly from the WordPress Plugin Dir
    * **Client ID**: Enter the client ID provided by Next Identity
    * **Client Secret**: Enter the client secret provided by Next Identity
    * **Scopes**: Specify the required OAuth scopes (default: `openid profile email`)
+   * **Skip UserInfo Endpoint**: Use ID token claims instead of making an additional call to the UserInfo endpoint
    * **Callback URL**: Copy this URL and register it as an authorized redirect URI in your Next Identity application settings
 
 2. **Button Customization**
@@ -115,6 +116,23 @@ The plugin provides several hooks that you can use to customize its behavior:
 * `ni_oidc_authorization_parameters` - Filter the parameters sent to the authorization endpoint
 * `ni_oidc_userinfo` - Filter the user info received from Next Identity
 
+## Performance Optimization
+
+The plugin provides several options to optimize performance:
+
+### ID Token vs UserInfo Endpoint
+
+By default, the plugin makes two requests during authentication:
+1. Token endpoint - To exchange the authorization code for tokens
+2. UserInfo endpoint - To get user profile information
+
+You can enable the "Skip UserInfo Endpoint" option to use only the claims from the ID token instead of making an additional call to the UserInfo endpoint. This reduces authentication time by eliminating one HTTP request.
+
+**Requirements for using this feature:**
+- Your Next Identity provider must include all required user claims in the ID token
+- At minimum, the ID token should contain: `sub`, `email`, and preferably `name`
+- You may need to configure your Next Identity provider to include additional claims in the ID token
+
 ## Troubleshooting
 
 If you encounter issues with the plugin:
@@ -123,6 +141,20 @@ If you encounter issues with the plugin:
 2. **Verify Callback URL**: Confirm that the callback URL is properly registered in your Next Identity application settings.
 3. **Enable WordPress Debug Mode**: Check the WordPress logs for any error messages related to the OIDC authentication process.
 4. **Check Scopes**: Ensure that the requested scopes are allowed for your Next Identity application.
+
+### Session Management
+
+The plugin uses WordPress transients to securely store authentication state parameters. This approach ensures:
+
+1. **Security**: State parameters are only valid for a limited time (10 minutes by default)
+2. **Reliability**: Works correctly for both authenticated and unauthenticated users
+3. **State Parameter**: The OIDC state parameter is stored securely for verification to prevent CSRF attacks
+
+If you're experiencing authentication issues, check that:
+- WordPress transients are functioning correctly (typically stored in your database)
+- Your server has proper cookie settings
+- You have not exceeded the maximum transient size for your WordPress installation
+- Any caching plugins you use are configured to preserve WordPress transients
 
 ## Credit
 
